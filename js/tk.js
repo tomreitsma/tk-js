@@ -15,14 +15,14 @@ var Promise, model, module, require, app;(function(scope){
 
     function expose(methods, name) {
         if(!(Object.prototype.toString.call(methods) === '[object Array]')) {
-            var methods = [methods];
+            methods = [methods];
         }
 
         for(var i=0; i<methods.length; i++) {
             var method = methods[i],
                 ret = method.toString().substr('function '.length),
                 _name = ret.substr(0, ret.indexOf('('));
-            if (_name.length == 0) { _name = name };
+            if (_name.length == 0) { _name = name }
 
             global[_name] = method;
         }
@@ -100,6 +100,10 @@ var Promise, model, module, require, app;(function(scope){
         __init__: function(_in) {
             var key;
             for(key in this.__definition__) {
+                if(!this.__definition__.hasOwnProperty(key)) {
+                    continue;
+                }
+
                 if(!key.startsWith('_')) {
                     this[key] = this.__definition__[key];
                 }
@@ -113,6 +117,10 @@ var Promise, model, module, require, app;(function(scope){
              */
 
             for(key in _in) {
+                if(!_in.hasOwnProperty(key)) {
+                    continue;
+                }
+
                 this[key] = _in[key];
             }
 
@@ -123,7 +131,7 @@ var Promise, model, module, require, app;(function(scope){
             var self = this;
             return new Promise(function(resolve, reject) {
                 if($.isFunction(self.pre_save)) {
-                    self.pre_save();
+                    self.pre_save(reject);
                 }
 
                 if(!self._pk) {
@@ -133,13 +141,15 @@ var Promise, model, module, require, app;(function(scope){
                 }
 
                 if($.isFunction(self.post_save)) {
-                    self.post_save();
+                    self.post_save(resolve);
                 }
             });
         }
     };
 
     Model.extend = function(obj) {
+        var key;
+
         var ConstructedModel = function(initial) {
             this.__init__(initial);
         };
@@ -175,11 +185,21 @@ var Promise, model, module, require, app;(function(scope){
             }
         };
 
-        var key;
         for(key in this) {
-            ConstructedModel[key] = this[key]; }
+            if(!this.hasOwnProperty(key)) {
+                continue;
+            }
+
+            ConstructedModel[key] = this[key];
+        }
+
         for(key in Model.prototype) {
-            ConstructedModel.prototype[key] = Model.prototype[key]; }
+            if(!Model.prototype.hasOwnProperty(key)) {
+                continue;
+            }
+
+            ConstructedModel.prototype[key] = Model.prototype[key];
+        }
 
         ConstructedModel.prototype.__definition__ = obj;
 
@@ -187,14 +207,18 @@ var Promise, model, module, require, app;(function(scope){
     };
 
     var ModelField = function(conf) {
-
         var def = {
+            properties: {},
             type: 'modelfield',
             field_type: conf.type,
             value: ''
         };
 
         for(var prop in conf) {
+            if(!conf.hasOwnProperty(prop)) {
+                continue;
+            }
+
             def[prop] = conf[prop];
         }
 
@@ -202,6 +226,10 @@ var Promise, model, module, require, app;(function(scope){
             /**
              * Handle max length stuff here
              */
+
+            var self = this;
+
+            console.dir({def: def});
 
             return def;
         }
@@ -373,7 +401,7 @@ var Promise, model, module, require, app;(function(scope){
                 name = object;
 
                 if(resource == 'models') {
-                    var type = 'model'
+                    var type = 'model';
                 } else if(resource == 'views' ){
                     var type = 'view';
                 } else {
